@@ -1,0 +1,22 @@
+{
+  "uuid": "38e4b1ab-474e-4fec-bd42-dbd220c6cd51",
+  "shortName": "Calendar",
+  "longName": "Calendar",
+  "companyName": "Jnm",
+  "versionCode": 2,
+  "versionLabel": "2.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {},
+  "resources": {
+    "media": [
+      {
+        "menuIcon": true,
+        "type": "png",
+        "name": "IMAGE_MENU_ICON",
+        "file": "images/menu_icon.png"
+      }
+    ]
+  }
+}
