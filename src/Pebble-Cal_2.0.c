@@ -528,7 +528,7 @@ void btn_up_handler(ClickRecognizerRef recognizer, void *context) {
 
 void up_single_click_handler(ClickRecognizerRef recognizer, void *context) {
 	numClicks++;
-	if (numClicks < 25) {
+	if (numClicks < 13) {
 		displayedMonth--;
 		if (displayedMonth == -1) {
 			displayedMonth = 11;
@@ -546,7 +546,7 @@ void up_single_click_handler(ClickRecognizerRef recognizer, void *context) {
 void down_single_click_handler(ClickRecognizerRef recognizer, void *context) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "Entering down_single_click_handler");
 	numClicks++;
-	if (numClicks < 25) {
+	if (numClicks < 13) {
 		displayedMonth++;
 		if (displayedMonth == 12) {
 			displayedMonth = 0;
