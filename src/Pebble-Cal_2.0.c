@@ -1,8 +1,5 @@
 #include <pebble.h>
 
-#include <string.h>
-#include "xprintf.h"
-
 // Languages
 #define LANG_DUTCH 0
 #define LANG_ENGLISH 1
@@ -14,29 +11,9 @@
 
 // Non Working Days Country
 #define NWD_NONE 0
-#define NWD_FRANCE 1
-#define NWD_USA 2
+#define NWD_USA 1
+#define NWD_FRANCE 2
 #define NWD_MAX 3
-
-// Compilation-time options
-#define LANG_CUR LANG_FRENCH
-#define NWD_COUNTRY NWD_FRANCE
-#define WEEK_STARTS_ON_SUNDAY false
-#define SHOW_WEEK_NUMBERS true
-
-#if LANG_CUR == LANG_DUTCH
-#define APP_NAME "Kalender"
-#elif LANG_CUR == LANG_FRENCH
-#define APP_NAME "Calendrier"
-#elif LANG_CUR == LANG_GERMAN
-#define APP_NAME "Kalender"
-#elif LANG_CUR == LANG_SPANISH
-#define APP_NAME "Calendario"
-#elif LANG_CUR == LANG_ITALIAN
-#define APP_NAME "Calendario"
-#else // Defaults to English
-#define APP_NAME "Calendar"
-#endif
 
 #define SUN 0
 #define MON 1
@@ -59,39 +36,36 @@
 #define NOV 10
 #define DEC 11
 
-
-static const char *windowName = APP_NAME;
-
-static const char *monthNames[] = {
-#if LANG_CUR == LANG_DUTCH
-	"Januari", "Februari", "Maart", "April", "Mei", "Juni", "Juli", "Augustus", "September", "Oktober", "November", "December"
-#elif LANG_CUR == LANG_FRENCH
-	"Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
-#elif LANG_CUR == LANG_GERMAN
-	"Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"
-#elif LANG_CUR == LANG_SPANISH
-	"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Augusto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-#elif LANG_CUR == LANG_ITALIAN
-	"Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
-#else // Defaults to English
-	"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
-#endif
+enum {
+	CONFIG_KEY_LANG			= 30,
+	CONFIG_KEY_WEEKSTART		= 31,
+	CONFIG_KEY_NWDCOUNTRY 	= 32,
+	CONFIG_KEY_SHOWWEEKNUM	= 33,
 };
 
-static const char *weekDays[] = {
-#if LANG_CUR == LANG_DUTCH
-	"Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"	// Dutch
-#elif LANG_CUR == LANG_FRENCH
-	"Di", "Lu", "Ma", "Me", "Je", "Ve", "Sa"	// French
-#elif LANG_CUR == LANG_GERMAN
-	"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"	// German
-#elif LANG_CUR == LANG_SPANISH
-	"Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"	// Spanish
-#elif LANG_CUR == LANG_ITALIAN
-	"Do", "Lu", "Ma", "Me", "Gi", "Ve", "Sa"	// Italian
-#else // Defaults to English
-	"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"	// English
-#endif
+char buffer[256] = "";
+
+int curLang = LANG_ENGLISH;
+int weekStartsOnMonday = 0;
+int nwdCountry = 0;
+int showWeekNum = 1;
+
+static const char *monthNames[LANG_MAX][12] = {
+	{ "Januari", "Februari", "Maart", "April", "Mei", "Juni", "Juli", "Augustus", "September", "Oktober", "November", "December" },			// Dutch
+	{ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" },			// English
+	{ "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre" },			// French
+	{ "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember" },				// German
+	{ "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Augusto", "Septiembre", "Octubre", "Noviembre", "Diciembre" },		// Spanish
+	{ "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre" }	// Italian
+};
+
+static const char *weekDays[LANG_MAX][7] = {
+	{ "Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za" },	// Dutch
+	{ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" },	// English
+	{ "Di", "Lu", "Ma", "Me", "Je", "Ve", "Sa" },	// French
+	{ "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa" },	// German
+	{ "Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá" },	// Spanish
+	{ "Do", "Lu", "Ma", "Me", "Gi", "Ve", "Sa" },	// Italian
 };
 
 #define SCREENW 144
@@ -116,12 +90,6 @@ int displayedMonth, displayedYear;
 
 static int DX, DY, DW, DH;
 
-#define NUM_NON_WORKING_DAYS 11
-typedef struct {
-	char name[30];
-	Date date;
-} nonWorkingDay;
-
 static char monthName[40] = "";
 
 static int julianDay(const Date *theDate) {
@@ -137,7 +105,7 @@ static int dayOfWeek(const Date *theDate) {
 	int J = julianDay(theDate);
 	return (J+1)%7;
 }
-#if SHOW_WEEK_NUMBERS
+
 static int weekNumber(const Date *theDate) {
 	int J = julianDay(theDate);
 	
@@ -147,7 +115,6 @@ static int weekNumber(const Date *theDate) {
 	
 	return (int)(d1/7)+1;
 }
-#endif
 
 static bool isLeapYear(const int Y) {
 	return (((Y%4 == 0) && (Y%100 != 0)) || (Y%400 == 0));
@@ -215,6 +182,7 @@ static void dateAddDays(Date *date, int numDays) {
 	}
 }
 
+/*
 static int compareDates(Date *d1, Date *d2) {
 	if (d1->year < d2->year) {
 		return -1;
@@ -236,8 +204,8 @@ static int compareDates(Date *d1, Date *d2) {
 		}
 	}
 }
+*/
 
-#if NWD_COUNTRY == NWD_FRANCE
 static void easterMonday(const int Y, Date *theDate) {
 	int a = Y-(int)(Y/19)*19;
 	int b = (int)(Y/100);
@@ -273,9 +241,7 @@ static void whitMonday(const int Y, Date *theDate) {
 	easterMonday(Y, theDate);
 	dateAddDays(theDate, 49);
 }
-#endif // NWD_COUNTRY == NWD_FRANCE
 
-#if NWD_COUNTRY == NWD_USA
 static void MLKBirthday(const int Y, Date *theDate) {
 	// Third monday in January
 	nthWeekdayOfMonth(Y, JAN, MON, 3, theDate);
@@ -311,76 +277,70 @@ static void thanksgivingFriday(const int Y, Date *theDate) {
 	thanksgivingThursday(Y, theDate);
 	dateAddDays(theDate, 1);
 }
-#endif // NWD_COUNTRY == NWD_USA
 
-# if NWD_COUNTRY != NWD_NONE
 static bool isNonWorkingDay(const Date *theDate) {
 	Date d;
+	
+	if (nwdCountry == NWD_NONE) {
+		return false;
+	}
 	
 	// Common public holidays
 	if (theDate->day == 1  && theDate->month == JAN) return true; // New year's day
 	if (theDate->day == 11 && theDate->month == NOV) return true; // Armistice 1918 // Veteran's day
 	if (theDate->day == 25 && theDate->month == DEC) return true; // Noël // Christmas
 
-#if NWD_COUNTRY == NWD_FRANCE
-	if (theDate->day == 1  && theDate->month == MAY) return true; // Fête du travail
-	if (theDate->day == 8  && theDate->month == MAY) return true; // Armistice 1945
-	if (theDate->day == 14 && theDate->month == JUL) return true; // Fête nationale
-	if (theDate->day == 15 && theDate->month == AUG) return true; // Assomption
-	if (theDate->day == 1  && theDate->month == NOV) return true; // Toussaint
-	
-	easterMonday(theDate->year, &d);
-	if (theDate->day == d.day && theDate->month == d.month) return true; // Lundi de Pâques
-	ascensionDay(theDate->year, &d);
-	if (theDate->day == d.day && theDate->month == d.month) return true; // Jeudi de l'ascension
-	whitMonday(theDate->year, &d);
-	if (theDate->day == d.day && theDate->month == d.month) return true; // Lundi de Pentecôte
+	if (nwdCountry == NWD_FRANCE) {
+		if (theDate->day == 1  && theDate->month == MAY) return true; // Fête du travail
+		if (theDate->day == 8  && theDate->month == MAY) return true; // Armistice 1945
+		if (theDate->day == 14 && theDate->month == JUL) return true; // Fête nationale
+		if (theDate->day == 15 && theDate->month == AUG) return true; // Assomption
+		if (theDate->day == 1  && theDate->month == NOV) return true; // Toussaint
+		
+		easterMonday(theDate->year, &d);
+		if (theDate->day == d.day && theDate->month == d.month) return true; // Lundi de Pâques
+		ascensionDay(theDate->year, &d);
+		if (theDate->day == d.day && theDate->month == d.month) return true; // Jeudi de l'ascension
+		whitMonday(theDate->year, &d);
+		if (theDate->day == d.day && theDate->month == d.month) return true; // Lundi de Pentecôte
+	} else if (nwdCountry == NWD_USA) {
+		if (theDate->day == 4 && theDate->month == JUL) return true; // Independence day
 
-#elif NWD_COUNTRY == NWD_USA
-	if (theDate->day == 4 && theDate->month == JUL) return true; // Independence day
-
-	switch (theDate->month) {
-	case JAN:
-		MLKBirthday(theDate->year, &d); 
-		if (theDate->day == d.day && theDate->month == d.month) return true; // Martin Luther King Jr.'s Birthday
-		break;
-	case FEB:
-		presidentDay(theDate->year, &d);
-        	if (theDate->day == d.day && theDate->month == d.month) return true; // President's day
-		break;
-	case MAY:
-		memorialDay(theDate->year, &d);
-        	if (theDate->day == d.day && theDate->month == d.month) return true; // Memorial Day
-		break;
-	case SEP:
-		laborDay(theDate->year, &d);
-        	if (theDate->day == d.day && theDate->month == d.month) return true; // Labor Day
-		break;
-	case OCT:
-		columbusDay(theDate->year, &d);
-        	if (theDate->day == d.day && theDate->month == d.month) return true; // Columbus Day
-		break;
-	case NOV:
-		thanksgivingThursday(theDate->year, &d);
-        	if (theDate->day == d.day && theDate->month == d.month) return true; // Thanksgiving thursday
-		thanksgivingFriday(theDate->year, &d);
-        	if (theDate->day == d.day && theDate->month == d.month) return true; // Thanksgiving friday
-		break;
+		switch (theDate->month) {
+		case JAN:
+			MLKBirthday(theDate->year, &d); 
+			if (theDate->day == d.day && theDate->month == d.month) return true; // Martin Luther King Jr.'s Birthday
+			break;
+		case FEB:
+			presidentDay(theDate->year, &d);
+				if (theDate->day == d.day && theDate->month == d.month) return true; // President's day
+			break;
+		case MAY:
+			memorialDay(theDate->year, &d);
+				if (theDate->day == d.day && theDate->month == d.month) return true; // Memorial Day
+			break;
+		case SEP:
+			laborDay(theDate->year, &d);
+				if (theDate->day == d.day && theDate->month == d.month) return true; // Labor Day
+			break;
+		case OCT:
+			columbusDay(theDate->year, &d);
+				if (theDate->day == d.day && theDate->month == d.month) return true; // Columbus Day
+			break;
+		case NOV:
+			thanksgivingThursday(theDate->year, &d);
+				if (theDate->day == d.day && theDate->month == d.month) return true; // Thanksgiving thursday
+			thanksgivingFriday(theDate->year, &d);
+				if (theDate->day == d.day && theDate->month == d.month) return true; // Thanksgiving friday
+			break;
+		}
 	}
 
-#endif
 	return false;
 }
-
-#else // NWD_COUNTRY != NWD_NONE
-static bool isNonWorkingDay(const Date *theDate) {
-	return false;
-}
-#endif //  NWD_COUNTRY != NWD_NONE
-
 
 void updateMonthText() {
-	xsprintf(monthName, "%s %d", monthNames[displayedMonth], displayedYear);
+	snprintf(monthName, sizeof(monthName), "%s %d", monthNames[curLang][displayedMonth], displayedYear);
 	text_layer_set_text(monthNameLayer, monthName);
 }
 
@@ -392,11 +352,13 @@ void updateMonth(Layer *layer, GContext *ctx) {
 	GRect rect, fillRect;
 	
 	first = Date(1, displayedMonth, displayedYear);
-#if WEEK_STARTS_ON_SUNDAY
-	firstday = dayOfWeek(&first);
-#else
-	firstday = (dayOfWeek(&first)+6)%7;
-#endif
+	
+	if (weekStartsOnMonday) {
+		firstday = (dayOfWeek(&first)+6)%7;
+	} else {
+		firstday = dayOfWeek(&first);
+	}
+
 	numDays = numDaysInMonth(displayedMonth, displayedYear);
 	
 	numWeeks = (firstday+6+numDays)/7;
@@ -407,48 +369,42 @@ void updateMonth(Layer *layer, GContext *ctx) {
 	graphics_context_set_fill_color(ctx, GColorBlack);
 	
 	// Calendar Grid
-#if SHOW_WEEK_NUMBERS
-	x = DX+DW;
-#else
-	x = DX;
-#endif
+	if (showWeekNum) {
+		x = DX+DW;
+	} else {
+		x = DX;
+	}
 
 	// Black Top Line with days of week
 	graphics_fill_rect(ctx, GRect(x, dy, DW*7+1, DH), 4, GCornersTop);
 
-#if SHOW_WEEK_NUMBERS
-	// Black left column for week numbers
-	graphics_fill_rect(ctx, GRect(DX, dy+DH, DW, numWeeks*DH+1), 4, GCornersLeft);
-#endif
+	if (showWeekNum) {
+		// Black left column for week numbers
+		graphics_fill_rect(ctx, GRect(DX, dy+DH, DW, numWeeks*DH+1), 4, GCornersLeft);
+		x = DX+DW;
+		w = DW*7;
+	} else {
+		x = DX+1;
+		w = DW*7-1;
+	}
 
-#if SHOW_WEEK_NUMBERS
-	x = DX+DW;
-	w = DW*7;
-#else
-	x = DX+1;
-	w = DW*7-1;
-#endif
 	// Double line on the outside
 	graphics_draw_round_rect(ctx, GRect(x, dy+DH, w, numWeeks*DH), 0);
 	
 	// Column(s) for the week-end or sunday
-#if WEEK_STARTS_ON_SUNDAY
-	x = DX+DW+1;
-#else
-	x = DX+5*DW+1;
-#endif
+	if (weekStartsOnMonday) {
+		x = DX+5*DW+1;
+	} else {
+		x = DX+DW+1;
+	}
 
-#if SHOW_WEEK_NUMBERS
-	x += DW;
-#endif
+	if (showWeekNum) {
+		x += DW;
+	}
 
 	graphics_draw_line(ctx, GPoint(x, dy+DH), GPoint(x, dy+DH+numWeeks*DH-1));
 	
-#if SHOW_WEEK_NUMBERS
-	x = 1;
-#else
-	x = 0;
-#endif
+	x = showWeekNum;
 
 	// Vertical lines
 	for (i=x; i<=x+7; i++) {
@@ -463,32 +419,23 @@ void updateMonth(Layer *layer, GContext *ctx) {
 	fontBold = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
 	f = fontNorm;
 	
-#if WEEK_STARTS_ON_SUNDAY
-	s = 0;
-#else
-	s = 1;
-#endif
-
-#if SHOW_WEEK_NUMBERS
-	x = 1;
-#else
-	x = 0;
-#endif
+	s = weekStartsOnMonday;
+	x = showWeekNum;
 
 	// Days of week
 	graphics_context_set_text_color(ctx, GColorWhite);
 	
 	for (i=s; i<s+7; i++) {
-		graphics_draw_text(ctx, weekDays[i%7], fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(DX+DW*(i+x-s), dy, DW+2, DH+1), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+		graphics_draw_text(ctx, weekDays[curLang][i%7], fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(DX+DW*(i+x-s), dy, DW+2, DH+1), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 	}
 	
-#if SHOW_WEEK_NUMBERS
-	// Week numbers
-	for (i=0, d=first; i<=numWeeks; i++, d.day+=7) {
-		xsprintf(numStr, "%d", weekNumber(&d));
-		graphics_draw_text(ctx, numStr, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(DX, dy+DH*(i+1), DW, DH+1), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+	if (showWeekNum) {
+		// Week numbers
+		for (i=0, d=first; i<=numWeeks; i++, d.day+=7) {
+			snprintf(numStr, sizeof(numStr), "%d", weekNumber(&d));
+			graphics_draw_text(ctx, numStr, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(DX, dy+DH*(i+1), DW, DH+1), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+		}
 	}
-#endif
 	
 	// Day numbers
 	graphics_context_set_text_color(ctx, GColorBlack);
@@ -499,7 +446,7 @@ void updateMonth(Layer *layer, GContext *ctx) {
 			l++;
 		}
 		
-		xsprintf(numStr, "%d", i);
+		snprintf(numStr, sizeof(numStr), "%d", i);
 
 		if (isNonWorkingDay(&Date(i, displayedMonth, displayedYear))) {
 			f = fontBold;
@@ -519,6 +466,12 @@ void updateMonth(Layer *layer, GContext *ctx) {
 			graphics_draw_text(ctx, numStr, f, rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 		}
 	}
+}
+
+void logVariables(const char *msg) {
+	snprintf(buffer, 256, "MSG: %s\n\tcurLang=%d\n\tshowWeekNum=%d\n\tweekStartsOnMonday=%d\n\tnwdCountry=%d\n", msg, curLang, showWeekNum, weekStartsOnMonday, nwdCountry);
+	
+	APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
 }
 
 static int numClicks = 0;
@@ -544,7 +497,6 @@ void up_single_click_handler(ClickRecognizerRef recognizer, void *context) {
 
 
 void down_single_click_handler(ClickRecognizerRef recognizer, void *context) {
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "Entering down_single_click_handler");
 	numClicks++;
 	if (numClicks < 13) {
 		displayedMonth++;
@@ -577,10 +529,105 @@ void click_config_provider(void *context) {
 	window_single_repeating_click_subscribe(BUTTON_ID_DOWN, REPEATING_CLICK_INTERVAL, (ClickHandler) down_single_click_handler);
 }
 
+void setOffsets() {
+	if (showWeekNum) {
+		DW = (SCREENW-2)/8;
+		DX = 1 + (SCREENW-2 - 8*DW)/2;
+	} else {
+		DW = (SCREENW-2)/7;
+		DX = 1 + (SCREENW-2 - 7*DW)/2;
+	}
+}
+
 void handle_tick(struct tm *now, TimeUnits units_changed) {
+	today.day = now->tm_mday;
+	today.month = now->tm_mon;
+	today.year = now->tm_year + 1900;
+	
+	displayedMonth = today.month;
+	displayedYear = today.year;
+
 	updateMonthText();
 	layer_mark_dirty(monthLayer);
 }
+
+void applyConfig() {
+	setOffsets();
+	updateMonthText();
+	layer_mark_dirty(monthLayer);
+}
+
+bool checkAndSaveInt(int *var, int val, int key) {
+	if (*var != val) {
+		*var = val;
+		persist_write_int(key, val);
+		return true;
+	} else {
+		return false;
+	}
+}
+
+void in_dropped_handler(AppMessageResult reason, void *context) {
+}
+
+void in_received_handler(DictionaryIterator *received, void *context) {
+	bool somethingChanged = false;
+	
+	Tuple *lang = dict_find(received, CONFIG_KEY_LANG);
+	Tuple *showweeknum = dict_find(received, CONFIG_KEY_SHOWWEEKNUM);
+	Tuple *weekstart = dict_find(received, CONFIG_KEY_WEEKSTART);
+	Tuple *nwdcountry = dict_find(received, CONFIG_KEY_NWDCOUNTRY);
+	
+	if (lang && showweeknum && weekstart && nwdcountry) {
+		somethingChanged |= checkAndSaveInt(&curLang, lang->value->int32, CONFIG_KEY_LANG);
+		somethingChanged |= checkAndSaveInt(&showWeekNum, showweeknum->value->int32, CONFIG_KEY_SHOWWEEKNUM);
+		somethingChanged |= checkAndSaveInt(&weekStartsOnMonday, weekstart->value->int32, CONFIG_KEY_WEEKSTART);
+		somethingChanged |= checkAndSaveInt(&nwdCountry, nwdcountry->value->int32, CONFIG_KEY_NWDCOUNTRY);
+		
+		logVariables("ReceiveHandler");
+		
+		if (somethingChanged) {
+			applyConfig();
+		}
+	}
+}
+
+
+void readConfig() {
+	if (persist_exists(CONFIG_KEY_LANG)) {
+		curLang = persist_read_int(CONFIG_KEY_LANG);
+	} else {
+		curLang = LANG_ENGLISH;
+	}
+	
+	if (persist_exists(CONFIG_KEY_WEEKSTART)) {
+		weekStartsOnMonday = persist_read_int(CONFIG_KEY_WEEKSTART);
+	} else {
+		weekStartsOnMonday = 1;
+	}
+	
+	if (persist_exists(CONFIG_KEY_SHOWWEEKNUM)) {
+		showWeekNum = persist_read_int(CONFIG_KEY_SHOWWEEKNUM);
+	} else {
+		showWeekNum = 1;
+	}
+	
+	if (persist_exists(CONFIG_KEY_NWDCOUNTRY)) {
+		nwdCountry = persist_read_int(CONFIG_KEY_NWDCOUNTRY);
+	} else {
+		nwdCountry = 0;
+	}
+	
+	logVariables("readConfig");
+	
+}
+
+static void app_message_init(void) {
+	app_message_register_inbox_received(in_received_handler);
+	app_message_register_inbox_dropped(in_dropped_handler);
+	app_message_open(64, 64);
+}
+
 
 void handle_init() {
 	Layer *rootLayer;
@@ -591,6 +638,9 @@ void handle_init() {
 	window_stack_push(window, true);
 	rootLayer = window_get_root_layer(window);
 
+	app_message_init();
+	readConfig();
+
 	curTime = time(NULL);
 	now = localtime(&curTime);
 	today.day = now->tm_mday;
@@ -600,13 +650,8 @@ void handle_init() {
 	displayedMonth = today.month;
 	displayedYear = today.year;
 	
-#if SHOW_WEEK_NUMBERS
-	DW = (SCREENW-2)/8;
-	DX = 1 + (SCREENW-2 - 8*DW)/2;
-#else
-	DW = (SCREENW-2)/7;
-	DX = 1 + (SCREENW-2 - 7*DW)/2;
-#endif
+	setOffsets();
+	
 	DH = MONTH_LAYER_HEIGHT/7;
 	DY = (MONTH_LAYER_HEIGHT - 7*DH)/2;
 

@@ -1,14 +1,20 @@
 {
   "uuid": "38e4b1ab-474e-4fec-bd42-dbd220c6cd51",
-  "shortName": "Calendar",
-  "longName": "Calendar",
+  "shortName": "Pebble-Cal 2.0",
+  "longName": "Pebble-Cal 2.0",
   "companyName": "Jnm",
   "versionCode": 2,
-  "versionLabel": "2.0",
+  "versionLabel": "2.0.1",
   "watchapp": {
     "watchface": false
   },
-  "appKeys": {},
+	"capabilities": [ "configurable" ],
+	"appKeys": {
+		"lang":			30,
+		"weekstart":	31,
+		"nwd_country":	32,
+		"showweeknum":	33
+	},
   "resources": {
     "media": [
       {
