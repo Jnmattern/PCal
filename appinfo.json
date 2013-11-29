@@ -4,7 +4,7 @@
   "longName": "Pebble-Cal 2.0",
   "companyName": "Jnm",
   "versionCode": 2,
-  "versionLabel": "2.0.1",
+  "versionLabel": "2.0.2",
   "watchapp": {
     "watchface": false
   },

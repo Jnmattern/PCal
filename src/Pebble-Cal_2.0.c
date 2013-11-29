@@ -7,13 +7,15 @@
 #define LANG_GERMAN 3
 #define LANG_SPANISH 4
 #define LANG_ITALIAN 5
-#define LANG_MAX 6
+#define LANG_SWEDISH 6
+#define LANG_MAX 7
 
 // Non Working Days Country
 #define NWD_NONE 0
 #define NWD_USA 1
 #define NWD_FRANCE 2
-#define NWD_MAX 3
+#define NWD_SWEDEN 3
+#define NWD_MAX 4
 
 #define SUN 0
 #define MON 1
@@ -56,7 +58,8 @@ static const char *monthNames[LANG_MAX][12] = {
 	{ "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre" },			// French
 	{ "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember" },				// German
 	{ "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Augusto", "Septiembre", "Octubre", "Noviembre", "Diciembre" },		// Spanish
-	{ "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre" }	// Italian
+	{ "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre" },	// Italian
+	{ "Januari", "Februari", "Mars", "April", "Maj", "Juni", "Juli", "Augusti", "September", "Oktober", "November", "December" }			// Swedish
 };
 
 static const char *weekDays[LANG_MAX][7] = {
@@ -66,6 +69,7 @@ static const char *weekDays[LANG_MAX][7] = {
 	{ "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa" },	// German
 	{ "Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá" },	// Spanish
 	{ "Do", "Lu", "Ma", "Me", "Gi", "Ve", "Sa" },	// Italian
+	{ "Sö", "Må", "Ti", "On", "To", "Fr", "Lö" }		// Swedish
 };
 
 #define SCREENW 144
@@ -163,22 +167,51 @@ static void lastWeekdayOfMonth(const int Y, const int M, const int weekday, Date
 	}
 }
 
+static void dateAddDays(Date *date, int numDays);
+
+static void dateSubDays(Date *date, int numDays) {
+	int i;
+
+	if (numDays > 0) {
+		for (i=0; i<numDays; i++) {
+			if (date->day == 1) {
+				if (date->month == 0) {
+					date->year--;
+					date->month = 11;
+					date->day = 31;
+				} else {
+					date->month--;
+					date->day = numDaysInMonth(date->month, date->year);
+				}
+			} else {
+				date->day--;
+			}
+		}
+	} else if (numDays < 0) {
+		dateAddDays(date, -numDays);
+	}
+}
+
 static void dateAddDays(Date *date, int numDays) {
 	int i;
 	
-	for (i=0; i<numDays; i++) {
-		if (date->day == numDaysInMonth(date->month, date->year)) {
-			if (date->month == 11) {
-				date->year++;
-				date->month = 0;
-				date->day = 1;
+	if (numDays > 0) {
+		for (i=0; i<numDays; i++) {
+			if (date->day == numDaysInMonth(date->month, date->year)) {
+				if (date->month == 11) {
+					date->year++;
+					date->month = 0;
+					date->day = 1;
+				} else {
+					date->month++;
+					date->day = 1;
+				}
 			} else {
-				date->month++;
-				date->day = 1;
+				date->day++;
 			}
-		} else {
-			date->day++;
 		}
+	} else if (numDays < 0) {
+		dateSubDays(date, -numDays);
 	}
 }
 
@@ -237,6 +270,11 @@ static void ascensionDay(const int Y, Date *theDate) {
 	dateAddDays(theDate, 38);
 }
 
+static void whitSunday(const int Y, Date *theDate) {
+	easterMonday(Y, theDate);
+	dateAddDays(theDate, 48);
+}
+
 static void whitMonday(const int Y, Date *theDate) {
 	easterMonday(Y, theDate);
 	dateAddDays(theDate, 49);
@@ -278,62 +316,118 @@ static void thanksgivingFriday(const int Y, Date *theDate) {
 	dateAddDays(theDate, 1);
 }
 
-static bool isNonWorkingDay(const Date *theDate) {
-	Date d;
+static void midsommardagen(const int Y, Date *theDate) {
+	// Saturday between June 20th and 26th
+	theDate->day = 20;
+	theDate->month = JUN;
+	theDate->year = Y;
 	
-	if (nwdCountry == NWD_NONE) {
-		return false;
+	while (dayOfWeek(theDate) != SAT) {
+		dateAddDays(theDate, 1);
 	}
+}
+
+static void allaHelgonsDag(const int Y, Date *theDate) {
+	// Saturday between October 31st and November 6th
+	theDate->day = 31;
+	theDate->month = OCT;
+	theDate->year = Y;
 	
-	// Common public holidays
-	if (theDate->day == 1  && theDate->month == JAN) return true; // New year's day
-	if (theDate->day == 11 && theDate->month == NOV) return true; // Armistice 1918 // Veteran's day
-	if (theDate->day == 25 && theDate->month == DEC) return true; // Noël // Christmas
+	while (dayOfWeek(theDate) != SAT) {
+		dateAddDays(theDate, 1);
+	}
+}
 
-	if (nwdCountry == NWD_FRANCE) {
-		if (theDate->day == 1  && theDate->month == MAY) return true; // Fête du travail
-		if (theDate->day == 8  && theDate->month == MAY) return true; // Armistice 1945
-		if (theDate->day == 14 && theDate->month == JUL) return true; // Fête nationale
-		if (theDate->day == 15 && theDate->month == AUG) return true; // Assomption
-		if (theDate->day == 1  && theDate->month == NOV) return true; // Toussaint
-		
-		easterMonday(theDate->year, &d);
-		if (theDate->day == d.day && theDate->month == d.month) return true; // Lundi de Pâques
-		ascensionDay(theDate->year, &d);
-		if (theDate->day == d.day && theDate->month == d.month) return true; // Jeudi de l'ascension
-		whitMonday(theDate->year, &d);
-		if (theDate->day == d.day && theDate->month == d.month) return true; // Lundi de Pentecôte
-	} else if (nwdCountry == NWD_USA) {
-		if (theDate->day == 4 && theDate->month == JUL) return true; // Independence day
+static bool isNonWorkingDay(const Date *theDate) {
+	Date d, d1;
+	
+	switch (nwdCountry) {
+		case NWD_NONE:
+			return false;
+			break;
 
-		switch (theDate->month) {
-		case JAN:
-			MLKBirthday(theDate->year, &d); 
-			if (theDate->day == d.day && theDate->month == d.month) return true; // Martin Luther King Jr.'s Birthday
+		case NWD_FRANCE:
+			if (theDate->day == 1  && theDate->month == JAN) return true; // New year's day
+			if (theDate->day == 11 && theDate->month == NOV) return true; // Armistice 1918 // Veteran's day
+			if (theDate->day == 25 && theDate->month == DEC) return true; // Noël // Christmas
+			if (theDate->day == 1  && theDate->month == MAY) return true; // Fête du travail
+			if (theDate->day == 8  && theDate->month == MAY) return true; // Armistice 1945
+			if (theDate->day == 14 && theDate->month == JUL) return true; // Fête nationale
+			if (theDate->day == 15 && theDate->month == AUG) return true; // Assomption
+			if (theDate->day == 1  && theDate->month == NOV) return true; // Toussaint
+			
+			easterMonday(theDate->year, &d);
+			if (theDate->day == d.day && theDate->month == d.month) return true; // Lundi de Pâques
+			ascensionDay(theDate->year, &d);
+			if (theDate->day == d.day && theDate->month == d.month) return true; // Jeudi de l'ascension
+			whitMonday(theDate->year, &d);
+			if (theDate->day == d.day && theDate->month == d.month) return true; // Lundi de Pentecôte
+			
 			break;
-		case FEB:
-			presidentDay(theDate->year, &d);
-				if (theDate->day == d.day && theDate->month == d.month) return true; // President's day
+			
+		case NWD_USA:
+			if (theDate->day == 1  && theDate->month == JAN) return true; // New year's day
+			if (theDate->day == 11 && theDate->month == NOV) return true; // Armistice 1918 // Veteran's day
+			if (theDate->day == 25 && theDate->month == DEC) return true; // Noël // Christmas
+			if (theDate->day == 4 && theDate->month == JUL) return true; // Independence day
+
+			switch (theDate->month) {
+				case JAN:
+					MLKBirthday(theDate->year, &d); 
+					if (theDate->day == d.day && theDate->month == d.month) return true; // Martin Luther King Jr.'s Birthday
+					break;
+				case FEB:
+					presidentDay(theDate->year, &d);
+						if (theDate->day == d.day && theDate->month == d.month) return true; // President's day
+					break;
+				case MAY:
+					memorialDay(theDate->year, &d);
+						if (theDate->day == d.day && theDate->month == d.month) return true; // Memorial Day
+					break;
+				case SEP:
+					laborDay(theDate->year, &d);
+						if (theDate->day == d.day && theDate->month == d.month) return true; // Labor Day
+					break;
+				case OCT:
+					columbusDay(theDate->year, &d);
+						if (theDate->day == d.day && theDate->month == d.month) return true; // Columbus Day
+					break;
+				case NOV:
+					thanksgivingThursday(theDate->year, &d);
+						if (theDate->day == d.day && theDate->month == d.month) return true; // Thanksgiving thursday
+					thanksgivingFriday(theDate->year, &d);
+						if (theDate->day == d.day && theDate->month == d.month) return true; // Thanksgiving friday
+					break;
+			}
 			break;
-		case MAY:
-			memorialDay(theDate->year, &d);
-				if (theDate->day == d.day && theDate->month == d.month) return true; // Memorial Day
+			
+		case NWD_SWEDEN:
+			if (theDate->day == 1  && theDate->month == JAN) return true; // Nyårsdagen / New year's day
+			if (theDate->day == 6  && theDate->month == JAN) return true; // Trettondedag / Epiphany
+			if (theDate->day == 1  && theDate->month == MAY) return true; // Första maj / Labor Day
+			if (theDate->day == 6  && theDate->month == JUN) return true; // Nationaldagen / National Day
+			if (theDate->day == 25 && theDate->month == DEC) return true; // Juldagen // Christmas
+			if (theDate->day == 26 && theDate->month == DEC) return true; // Annandag jul // Boxing Day
+
+			easterMonday(theDate->year, &d);
+			d1 = d;
+			dateSubDays(&d1, 1); // easter Sunday
+			if (theDate->day == d1.day && theDate->month == d1.month) return true; // Påskdagen / Easter Sunday
+			if (theDate->day == d.day && theDate->month == d.month) return true; // Annandag påsk / Easter Monday
+
+			ascensionDay(theDate->year, &d);
+			if (theDate->day == d.day && theDate->month == d.month) return true; // Kristi Himmelsfärdsdag / Ascension Day
+			
+			whitSunday(theDate->year, &d);
+			if (theDate->day == d.day && theDate->month == d.month) return true; // Pingsdagen / Whit Sunday
+
+			midsommardagen(theDate->year, &d);
+			if (theDate->day == d.day && theDate->month == d.month) return true; // Midsommardagen / Midsummer Day
+			
+			allaHelgonsDag(theDate->year, &d);
+			if (theDate->day == d.day && theDate->month == d.month) return true; // Alla helgons dag / All Saints' Day
+
 			break;
-		case SEP:
-			laborDay(theDate->year, &d);
-				if (theDate->day == d.day && theDate->month == d.month) return true; // Labor Day
-			break;
-		case OCT:
-			columbusDay(theDate->year, &d);
-				if (theDate->day == d.day && theDate->month == d.month) return true; // Columbus Day
-			break;
-		case NOV:
-			thanksgivingThursday(theDate->year, &d);
-				if (theDate->day == d.day && theDate->month == d.month) return true; // Thanksgiving thursday
-			thanksgivingFriday(theDate->year, &d);
-				if (theDate->day == d.day && theDate->month == d.month) return true; // Thanksgiving friday
-			break;
-		}
 	}
 
 	return false;
