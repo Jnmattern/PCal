@@ -339,7 +339,7 @@ static void allaHelgonsDag(const int Y, Date *theDate) {
 }
 
 static bool isNonWorkingDay(const Date *theDate) {
-	Date d, d1;
+	Date d, d1, d2;
 	
 	switch (nwdCountry) {
 		case NWD_NONE:
@@ -410,8 +410,10 @@ static bool isNonWorkingDay(const Date *theDate) {
 			if (theDate->day == 26 && theDate->month == DEC) return true; // Annandag jul // Boxing Day
 
 			easterMonday(theDate->year, &d);
-			d1 = d;
+			d1 = d2 = d;
 			dateSubDays(&d1, 1); // easter Sunday
+			dateSubDays(&d2, 3); // Good Friday
+			if (theDate->day == d2.day && theDate->month == d2.month) return true; // Långfredagen / Good Friday
 			if (theDate->day == d1.day && theDate->month == d1.month) return true; // Påskdagen / Easter Sunday
 			if (theDate->day == d.day && theDate->month == d.month) return true; // Annandag påsk / Easter Monday
 
