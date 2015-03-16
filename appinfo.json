@@ -4,17 +4,19 @@
   "longName": "Pebble-Cal 2.0",
   "companyName": "Jnm",
   "versionCode": 2,
-  "versionLabel": "2.0.3",
+  "versionLabel": "3.0",
   "watchapp": {
     "watchface": false
   },
-	"capabilities": [ "configurable" ],
-	"appKeys": {
-		"lang":			30,
-		"weekstart":	31,
-		"nwd_country":	32,
-		"showweeknum":	33
-	},
+  "capabilities": [
+    "configurable"
+  ],
+  "appKeys": {
+    "lang": 30,
+    "weekstart": 31,
+    "nwd_country": 32,
+    "showweeknum": 33
+  },
   "resources": {
     "media": [
       {
@@ -24,5 +26,10 @@
         "file": "images/menu_icon.png"
       }
     ]
-  }
+  },
+  "targetPlatforms": [
+    "aplite",
+    "basalt"
+  ],
+  "sdkVersion": "3"
 }

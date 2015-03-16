@@ -85,6 +85,8 @@ typedef struct {
 	int year;
 } Date;
 
+#define Date(d, m, y) ((Date){ (d), (m), (y) })
+
 Window *window;
 Layer *monthLayer;
 TextLayer *monthNameLayer;
@@ -110,62 +112,85 @@ static int dayOfWeek(const Date *theDate) {
 	return (J+1)%7;
 }
 
-static int weekNumber(const Date *theDate) {
-	int J = julianDay(theDate);
-	
-	int d4 = (J+31741-(J%7))%146097%36524%1461;
-	int L = (int)(d4/1460);
-	int d1 = ((d4-L)%365)+L;
-	
-	return (int)(d1/7)+1;
-}
 
 static bool isLeapYear(const int Y) {
-	return (((Y%4 == 0) && (Y%100 != 0)) || (Y%400 == 0));
+  return (((Y%4 == 0) && (Y%100 != 0)) || (Y%400 == 0));
 }
 
 static int numDaysInMonth(const int M, const int Y) {
-	static const int nDays[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
-	
-	return nDays[M] + (M == FEB)*isLeapYear(Y);
+  static const int nDays[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+
+  return nDays[M] + (M == FEB)*isLeapYear(Y);
 }
 
-#define Date(d, m, y) ((Date){ (d), (m), (y) })
+static int ordinalDay(const Date *theDate) {
+  // Returns the day number in the year
+  if (theDate->month == JAN) {
+    return theDate->day;
+  } else {
+    int daynum = theDate->day;
+    for (int m=theDate->month-1; m >= JAN; m--) {
+      daynum += numDaysInMonth(m, theDate->year);
+    }
+    return daynum;
+  }
+}
 
 static void nthWeekdayOfMonth(const int Y, const int M, const int weekday, const int n, Date *theDate) {
-	int firstDayOfMonth, curWeekday, count = 0;
+  int firstDayOfMonth, curWeekday, count = 0;
 
-	theDate->day = 1;
-	theDate->month = M;
-	theDate->year = Y;
-	
-	firstDayOfMonth = curWeekday = dayOfWeek(theDate);
+  theDate->day = 1;
+  theDate->month = M;
+  theDate->year = Y;
 
-	if (firstDayOfMonth == weekday) {
-		count = 1;
-	}
-	while (count < n) {
-		theDate->day++;
-		curWeekday = (curWeekday+1)%7;
-		if (curWeekday == weekday) {
-			count++;
-		}
-	}
+  firstDayOfMonth = curWeekday = dayOfWeek(theDate);
+
+  if (firstDayOfMonth == weekday) {
+    count = 1;
+  }
+  while (count < n) {
+    theDate->day++;
+    curWeekday = (curWeekday+1)%7;
+    if (curWeekday == weekday) {
+      count++;
+    }
+  }
 }
 
 static void lastWeekdayOfMonth(const int Y, const int M, const int weekday, Date *theDate) {
-	int curWeekday;
+  int curWeekday;
 
-	theDate->day = numDaysInMonth(M, Y);
-	theDate->month = M;
-	theDate->year = Y;
+  theDate->day = numDaysInMonth(M, Y);
+  theDate->month = M;
+  theDate->year = Y;
 
-	curWeekday = dayOfWeek(theDate);
-	while (curWeekday != weekday) {
-		theDate->day--;
-		curWeekday = (curWeekday+6)%7;
-	}
+  curWeekday = dayOfWeek(theDate);
+  while (curWeekday != weekday) {
+    theDate->day--;
+    curWeekday = (curWeekday+6)%7;
+  }
 }
+
+static int weekNumber(const Date *theDate) {
+  if (weekStartsOnMonday) {
+    // ISO Week numbers
+    int J = julianDay(theDate);
+    
+    int d4 = (J+31741-(J%7))%146097%36524%1461;
+    int L = (int)(d4/1460);
+    int d1 = ((d4-L)%365)+L;
+    
+    return (int)(d1/7)+1;
+  } else {
+    // US Week numbers (First week begins on 1st of January, next week begins on next Sunday. If 1st of January is a sunday, week #2 begins on 8th)
+    Date januaryFirst = Date(1, JAN, theDate->year);
+    int weekdayJanFirst = dayOfWeek(&januaryFirst);
+    int daynum = ordinalDay(theDate);
+
+    return 1 + ((daynum+weekdayJanFirst-1)/7);
+  }
+}
+
 
 static void dateAddDays(Date *date, int numDays);
 
