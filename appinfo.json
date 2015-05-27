@@ -1,10 +1,10 @@
 {
   "uuid": "38e4b1ab-474e-4fec-bd42-dbd220c6cd51",
-  "shortName": "Pebble-Cal 2.0",
-  "longName": "Pebble-Cal 2.0",
+  "shortName": "PCal",
+  "longName": "PCal",
   "companyName": "Jnm",
   "versionCode": 2,
-  "versionLabel": "3.0",
+  "versionLabel": "3.1",
   "watchapp": {
     "watchface": false
   },
