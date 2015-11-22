@@ -44,7 +44,7 @@ Pebble.addEventListener("showConfiguration", function(e) {
 
 	logVariables();
 						
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/PCal/PCal_3.1.php?" +
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/PCal/PCal_3.3.html?" +
 				   "lang=" + lang +
 				   "&weekstart=" + weekstart +
 				   "&nwd_country=" + nwd_country +
@@ -54,9 +54,9 @@ Pebble.addEventListener("showConfiguration", function(e) {
 Pebble.addEventListener("webviewclosed", function(e) {
 	console.log("Configuration window closed");
 	console.log(e.type);
-	console.log(e.response);
+  console.log("Response: " + decodeURIComponent(e.response));
 
-	var configuration = JSON.parse(e.response);
+	var configuration = JSON.parse(decodeURIComponent(e.response));
 	Pebble.sendAppMessage(configuration);
 	
 	lang = configuration["lang"];

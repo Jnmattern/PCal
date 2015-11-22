@@ -72,12 +72,19 @@ static const char *weekDays[LANG_MAX][7] = {
 	{ "Sö", "Må", "Ti", "On", "To", "Fr", "Lö" }		// Swedish
 };
 
+#define REPEATING_CLICK_INTERVAL 200
 #define SCREENW 144
 #define SCREENH 168
-#define MENUBAR_HEIGHT 16
 #define MONTHNAME_LAYER_HEIGHT 20
-#define MONTH_LAYER_HEIGHT (SCREENH-MENUBAR_HEIGHT-MONTHNAME_LAYER_HEIGHT)
-#define REPEATING_CLICK_INTERVAL 200
+#define MONTH_LAYER_HEIGHT (SCREENH-20-MONTHNAME_LAYER_HEIGHT)
+
+#if defined(PBL_RECT)
+#define XOFFSET 0
+#define YOFFSET 0
+#elif defined(PBL_ROUND)
+#define XOFFSET 18
+#define YOFFSET 10
+#endif
 
 typedef struct {
 	int day;
@@ -776,7 +783,7 @@ void handle_init() {
 	DH = MONTH_LAYER_HEIGHT/7;
 	DY = (MONTH_LAYER_HEIGHT - 7*DH)/2;
 
-	monthNameLayer = text_layer_create(GRect(0, 0, SCREENW, MONTHNAME_LAYER_HEIGHT));
+	monthNameLayer = text_layer_create(GRect(XOFFSET, YOFFSET, SCREENW, MONTHNAME_LAYER_HEIGHT));
 	text_layer_set_background_color(monthNameLayer, GColorWhite);
 	text_layer_set_text_color(monthNameLayer, GColorBlack);
 	text_layer_set_font(monthNameLayer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
@@ -785,7 +792,7 @@ void handle_init() {
 	
 	updateMonthText();
 	
-	monthLayer = layer_create(GRect(0, MONTHNAME_LAYER_HEIGHT, SCREENW, MONTH_LAYER_HEIGHT));
+	monthLayer = layer_create(GRect(XOFFSET, MONTHNAME_LAYER_HEIGHT+YOFFSET, SCREENW, MONTH_LAYER_HEIGHT));
 	layer_set_update_proc(monthLayer, updateMonth);
 	layer_add_child(rootLayer, monthLayer);
 	
