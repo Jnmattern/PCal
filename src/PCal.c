@@ -15,7 +15,8 @@
 #define NWD_USA 1
 #define NWD_FRANCE 2
 #define NWD_SWEDEN 3
-#define NWD_MAX 4
+#define NWD_SPAIN 4
+#define NWD_MAX 5
 
 #define SUN 0
 #define MON 1
@@ -297,6 +298,11 @@ static void easterMonday(const int Y, Date *theDate) {
 	theDate->year = Y;
 }
 
+static void goodFriday(const int Y, Date *theDate) {
+  easterMonday(Y, theDate);
+  dateSubDays(theDate, 3);
+}
+
 static void ascensionDay(const int Y, Date *theDate) {
 	easterMonday(Y, theDate);
 	dateAddDays(theDate, 38);
@@ -462,7 +468,23 @@ static bool isNonWorkingDay(const Date *theDate) {
 			if (theDate->day == d.day && theDate->month == d.month) return true; // Alla helgons dag / All Saints' Day
 
 			break;
-	}
+
+    case NWD_SPAIN:
+      if (theDate->day == 1  && theDate->month == JAN) return true; // Año	Nuevo
+      if (theDate->day == 6  && theDate->month == JAN) return true; // Epifania del Señor
+      if (theDate->day == 1  && theDate->month == MAY) return true; // Fiesta del trabajo
+      if (theDate->day == 15 && theDate->month == AUG) return true; // Asuncion de la Virgen
+      if (theDate->day == 12 && theDate->month == OCT) return true; // Fiesta nacional de España
+      if (theDate->day == 1  && theDate->month == NOV) return true; // Todos los santos
+      if (theDate->day == 6  && theDate->month == DEC) return true; // Dia de la constitucion
+      if (theDate->day == 8  && theDate->month == DEC) return true; // Inmaculada Conception
+      if (theDate->day == 25 && theDate->month == DEC) return true; // Natividad del Señor
+
+      goodFriday(theDate->year, &d);
+      if (theDate->day == d.day && theDate->month == d.month) return true; // Viernes Santo
+
+      break;
+  }
 
 	return false;
 }

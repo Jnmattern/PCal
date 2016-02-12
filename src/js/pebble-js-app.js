@@ -44,7 +44,7 @@ Pebble.addEventListener("showConfiguration", function(e) {
 
 	logVariables();
 						
-	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/PCal/PCal_3.3.html?" +
+	Pebble.openURL("http://www.famillemattern.com/jnm/pebble/PCal/PCal_3.4.html?" +
 				   "lang=" + lang +
 				   "&weekstart=" + weekstart +
 				   "&nwd_country=" + nwd_country +

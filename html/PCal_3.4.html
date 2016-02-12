@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html manifest="appcache_3.4.manifest">
+        <head>
+                <title>PCal</title>
+                <meta charset='utf-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1'>
+                <link rel='stylesheet' href='../jquery.mobile-1.3.2.min.css' />
+                <script src='../jquery-1.9.1.min.js'></script>
+                <script src='../jquery.mobile-1.3.2.min-custom.js'></script>
+
+                <link rel="stylesheet" type="text/css" href="../spectrum.css">
+                <script type='text/javascript' src="../spectrum.js"></script>
+                <script type='text/javascript' src="../argsparse.js"></script>
+
+                <style>
+                        .ui-header .ui-title { margin-left: 1em; margin-right: 1em; text-overflow: clip; }
+                </style>
+        </head>
+		<body>
+<div data-role="page" id="page1">
+    <div data-theme="a" data-role="header" data-position="fixed">
+        <div class="ui-grid-a">
+            <div class="ui-block-a">
+                <input id="cancel" type="submit" data-theme="c" data-icon="delete" data-iconpos="left"
+                value="Cancel" data-mini="true">
+            </div>
+            <div class="ui-block-b">
+                <input id="save" type="submit" data-theme="b" data-icon="check" data-iconpos="right"
+                value="Save" data-mini="true">
+            </div>
+        </div>
+    </div>
+
+
+<script>
+
+if (typeof (args.colorCapable) == "undefined") {
+  args.colorCapable = 0;
+}
+
+if ((args.colorCapable == "true") || (args.colorCapable == 1)) {
+  args.colorCapable = 1;
+} else {
+  args.colorCapable = 0;
+}
+
+</script>
+
+    <div data-role="content">
+
+<div data-role="fieldcontain">
+	<label for="lang">
+		Language
+	</label>
+	<select id="lang" data-native-menu="true" name="lang" data-mini="true">
+<script>
+  var langs = [
+    [ 0, 'Dutch' ],
+    [ 1, 'English' ],
+    [ 2, 'French' ],
+    [ 3, 'German' ],
+    [ 5, 'Italian' ],
+    [ 4, 'Spanish' ],
+    [ 6, 'Swedish' ]
+  ];
+
+  if (typeof (args.lang) == "undefined") {
+    args.lang = 1;
+  }
+
+  var i, c;
+  for (i=0; i<langs.length; i++) {
+    if (args.lang == langs[i][0]) {
+      c = " selected";
+    } else {
+      c = "";
+    }
+    document.writeln('<option value="' + langs[i][0] + '" ' + c + '>' + langs[i][1] + '</option>');
+  }
+</script>
+</select>
+</div>
+
+<div id="weekstart" data-role="fieldcontain">
+<fieldset data-role="controlgroup" data-type="horizontal" data-mini="true">
+<legend>Week starts on</legend>
+<script>
+  if (typeof (args.weekstart) == "undefined") {
+    args.weekstart = 0;
+  }
+
+  s = [ "", "" ];
+  s[args.weekstart] = " checked";
+
+  document.writeln('<input id="format1" name="weekstart" value="0" data-theme="" type="radio"' + s[0] + '><label for="format1">Sunday</label>');
+  document.writeln('<input id="format2" name="weekstart" value="1" data-theme="" type="radio"' + s[1] + '><label for="format2">Monday</label>');
+</script>
+</fieldset>
+</div>
+
+
+<div data-role="fieldcontain">
+            <label for="showweeknum">
+                Show Week Number
+			</label>
+            <select name="showweeknum" id="showweeknum" data-theme="" data-role="slider" data-mini="true">
+<script>
+  if (typeof (args.showweeknum) == "undefined") {
+    args.showweeknum = 1;
+  }
+
+  s = [ "", "" ];
+  s[args.showweeknum] = " selected";
+
+  document.writeln('<option value="0"' + s[0] + '>Off</option><option value="1"' + s[1] + '>On</option>');
+</script>
+            </select>
+        </div>
+
+<div data-role="fieldcontain">
+	<label for="nwd_country">
+		Non Working Days Country
+	</label>
+	<select id="nwd_country" data-native-menu="true" name="nwd_country" data-mini="true">
+<script>
+  var countries = [
+    [ 0, 'None' ],
+    [ 2, 'France' ],
+    [ 4, 'Spain' ],
+    [ 3, 'Sweden' ],
+    [ 1, 'U.S.A.' ]
+  ];
+
+  if (typeof (args.nwd_country) == "undefined") {
+    args.lang = 0;
+  }
+
+  var i, c;
+  for (i=0; i<countries.length; i++) {
+    if (args.nwd_country == countries[i][0]) {
+      c = " selected";
+    } else {
+      c = "";
+    }
+    document.writeln('<option value="' + countries[i][0] + '" ' + c + '>' + countries[i][1] + '</option>');
+  }
+</script>
+</select>
+</div>
+
+</div>
+
+    <script>
+  if (typeof (args.return_to) == "undefined") {
+    args.return_to = 'pebblejs://close#';
+  }
+
+  var closeURL = args.return_to;
+
+      function saveOptions() {
+        var options = {
+			'lang': parseInt($("#lang").val(), 10),
+			'weekstart': parseInt($("input[name=weekstart]:checked").val(), 10),
+			'showweeknum': parseInt($("#showweeknum").val(), 10),
+			'nwd_country': parseInt($("#nwd_country").val(), 10),
+        }
+        return options;
+      }
+
+      $().ready(function() {
+        $("#cancel").click(function() {
+          console.log("Cancel");
+          document.location = "pebblejs://close#";
+        });
+
+        $("#save").click(function() {
+          console.log("Submit");
+
+          var location = closeURL + encodeURIComponent(JSON.stringify(saveOptions()));
+          console.log("Close: " + location);
+          console.log(location);
+          document.location = location;
+        });
+
+      });
+    </script>
+</body>
+</html>
